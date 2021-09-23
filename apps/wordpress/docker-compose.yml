@@ -1,0 +1,57 @@
+version: '3'
+
+networks:
+  wordpress:
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: demo-mysql
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: demo # This variable is optional and allows you to specify the name of a database to be created on image startup
+      MYSQL_USER: demo # This variables is optional, used in conjunction to MYSQL_PASSWORD to create a new user. This user will be granted superuser permissions for the database specified by the MYSQL_DATABASE variable. it is required for a user to be created.
+      MYSQL_PASSWORD: root # This variables are optional, used in conjunction to MYSQL_USER to set that user's password. This user will be granted superuser permissions for the database specified by the MYSQL_DATABASE variable. it is required for a user to be created.
+      MYSQL_ROOT_PASSWORD: root # This variable is mandatory and specifies the password that will be set for the MySQL root superuser account
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      - wordpress
+
+  wordpress:
+    image: wordpress
+    depends_on:
+      - mysql
+      - phpmyadmin
+    container_name: demo-wordpress
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_USER: demo
+      WORDPRESS_DB_PASSWORD: root
+      WORDPRESS_DB_NAME: demo
+    volumes:
+      - ./html:/var/www/html
+    networks:
+      - wordpress
+
+  phpmyadmin:
+    image: phpmyadmin
+    depends_on:
+      - mysql
+    restart: always
+    container_name: demo-phpmyadmin
+    ports:
+      - 8183:80
+    environment:
+      - PMA_HOST=mysql # define address/host name of the MySQL server
+      - PMA_PORT=3306 # define port of the MySQL server
+      - PMA_ARBITRARY=1 # when set to 1 connection to the arbitrary server will be allowed
+      - UPLOAD_LIMIT=64M # if set, this option will override the default value for apache and php-fpm (format as [0-9+](K,M,G) default value is 2048K
+      - MAX_EXECUTION_TIME=3000 # if set, will override the maximum execution time in seconds (default 600) for phpMyAdmin
+    networks:
+      - wordpress
